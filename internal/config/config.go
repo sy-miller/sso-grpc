@@ -12,6 +12,12 @@ import (
 const (
 	CONFIG_PATH_ENV_KEY = "CONFIG_PATH"
 	CONFIG_PATH_FLAG    = "config"
+
+	// Log levels
+	INFO  = "INFO"
+	DEBUG = "DEBUG"
+	ERROR = "ERROR"
+	WARN  = "WARN"
 )
 
 type Config struct {
