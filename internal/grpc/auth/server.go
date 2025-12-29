@@ -5,23 +5,104 @@ import (
 
 	ssov1 "github.com/sy-miller/protos/gen/go/sso"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
+
+type Auth interface {
+	Login(ctx context.Context, email, password string, appId int) (string, error)
+	RegisterNewUser(ctx context.Context, email, password string) (string, error)
+	IsAdmin(ctx context.Context, userId string) (bool, error)
+}
 
 type serverAPI struct {
 	ssov1.UnimplementedAuthServer
+	auth Auth
 }
 
-func Register(gRPC *grpc.Server) {
-	ssov1.RegisterAuthServer(gRPC, &serverAPI{})
+func Register(gRPC *grpc.Server, auth Auth) {
+	ssov1.RegisterAuthServer(gRPC, &serverAPI{auth: auth})
 }
+
+const (
+	emptyIntValue = 0
+	emptyStrValue = ""
+)
+
 func (s *serverAPI) Register(ctx context.Context, req *ssov1.RegisterRequest) (*ssov1.RegisterResponse, error) {
-	panic("not implemented") // TODO: Implement
+	if err := validateRegisterRequest(req); err != nil {
+		return nil, err
+	}
+
+	// Register via auth service
+	userId, err := s.auth.RegisterNewUser(ctx, req.GetEmail(), req.GetPassword())
+	if err != nil {
+		// TODO: handle client erors
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	return &ssov1.RegisterResponse{
+		UserId: userId,
+	}, nil
 }
 
 func (s *serverAPI) Login(ctx context.Context, req *ssov1.LoginRequest) (*ssov1.LoginResponse, error) {
-	panic("not implemented") // TODO: Implement
+	if err := validateLoginRequest(req); err != nil {
+		return nil, err
+	}
+
+	// Login via auth service
+	token, err := s.auth.Login(ctx, req.GetEmail(), req.GetPassword(), int(req.GetAppId()))
+	if err != nil {
+		// TODO: handle client erors
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	return &ssov1.LoginResponse{Token: token}, nil
 }
 
 func (s *serverAPI) IsAdmin(ctx context.Context, req *ssov1.IsAdminRequest) (*ssov1.IsAdminResponse, error) {
-	panic("not implemented") // TODO: Implement
+	if err := validateIsAdminRequest(req); err != nil {
+		return nil, err
+	}
+
+	// Lookup admin status via auth service
+	isAdmin, err := s.auth.IsAdmin(ctx, req.GetUserId())
+	if err != nil {
+		// TODO: handle client erors
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+	return &ssov1.IsAdminResponse{
+		IsAdmin: isAdmin,
+	}, nil
+}
+
+func validateLoginRequest(req *ssov1.LoginRequest) error {
+	if req.GetEmail() == emptyStrValue {
+		return status.Error(codes.InvalidArgument, "email is required")
+	}
+	if req.GetPassword() == emptyStrValue {
+		return status.Error(codes.InvalidArgument, "password is required")
+	}
+	if req.GetAppId() == emptyIntValue {
+		return status.Error(codes.InvalidArgument, "app_id is required")
+	}
+	return nil
+}
+
+func validateRegisterRequest(req *ssov1.RegisterRequest) error {
+	if req.GetEmail() == emptyStrValue {
+		return status.Error(codes.InvalidArgument, "email is required")
+	}
+	if req.GetPassword() == emptyStrValue {
+		return status.Error(codes.InvalidArgument, "password is required")
+	}
+	return nil
+}
+
+func validateIsAdminRequest(req *ssov1.IsAdminRequest) error {
+	if req.GetUserId() == emptyStrValue {
+		return status.Error(codes.InvalidArgument, "email is required")
+	}
+	return nil
 }
