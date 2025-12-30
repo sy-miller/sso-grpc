@@ -26,4 +26,6 @@ go.work
 
 # End of https://www.toptal.com/developers/gitignore/api/go
 
+# Ignored local dev files, databases
 local.*
+*.db
