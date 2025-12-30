@@ -10,6 +10,8 @@ import (
 	"google.golang.org/grpc"
 )
 
+const pkgFn = "grpcApp"
+
 type App struct {
 	log        *slog.Logger
 	gRPCServer *grpc.Server
@@ -29,9 +31,8 @@ func New(log *slog.Logger, port int) *App {
 	}
 }
 
-
 func (a *App) Run() error {
-	const fn = "grpcapp.Run"
+	const fn = pkgFn + ".Run"
 	log := a.log.With(slog.String("fn", fn))
 
 	log.Info("starting gRPC server", slog.Int("port", a.port))
@@ -51,10 +52,9 @@ func (a *App) Run() error {
 }
 
 func (a *App) Stop() {
-	const fn = "grpcapp.Stop"
+	const fn = pkgFn + ".Stop"
 
 	a.log.With(slog.String("fn", fn)).Info("stopping gRPC server", slog.Int("port", a.port))
 
 	a.gRPCServer.GracefulStop()
 }
-
