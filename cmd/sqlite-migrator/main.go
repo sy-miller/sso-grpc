@@ -11,11 +11,15 @@ import (
 )
 
 func main() {
-	var storagePath, migrationsPath, migrationsTable string
+	var (
+		storagePath, migrationsPath, migrationsTable string
+		isDownMigration                              bool
+	)
 
 	flag.StringVar(&storagePath, "storage-path", "", "Path to the storage database file")
 	flag.StringVar(&migrationsPath, "migrations-path", "", "Path to the migrations directory")
 	flag.StringVar(&migrationsTable, "migrations-table", "migrations", "Name of the migrations table")
+	flag.BoolVar(&isDownMigration, "down", false, "Set to true to apply down migrations instead of up migrations")
 	flag.Parse()
 
 	if storagePath == "" {
@@ -34,6 +38,18 @@ func main() {
 		panic(err)
 	}
 
+	if isDownMigration {
+		if err := m.Down(); err != nil {
+			if errors.Is(err, migrate.ErrNoChange) {
+				fmt.Println("no migrations to revert")
+			} else {
+				panic(err)
+			}
+		}
+		fmt.Println("migrations reverted successfully")
+		return
+	}
+
 	if err := m.Up(); err != nil {
 		if errors.Is(err, migrate.ErrNoChange) {
 			fmt.Println("no migrations to apply")
@@ -41,6 +57,7 @@ func main() {
 			panic(err)
 		}
 	}
+
 
 	fmt.Println("migrations applied successfully")
 }
