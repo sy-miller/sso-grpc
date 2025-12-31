@@ -78,7 +78,7 @@ func (a *AuthSvc) Login(ctx context.Context, email string, password string, appI
 	app, err := a.appProvider.GetAppById(ctx, appId)
 	if err != nil {
 		if errors.Is(err, storage.ErrAppNotFound) {
-			log.Error("app not found", slog.String("error", err.Error()))
+			log.Error("app not found", slog.Int("appId", appId), slog.String("error", err.Error()))
 			return "", fmt.Errorf("%s: %w", fn, ErrInvalidAppId)
 		}
 
