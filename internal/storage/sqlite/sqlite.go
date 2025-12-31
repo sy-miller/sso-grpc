@@ -96,3 +96,25 @@ func (s *Storage) IsAdmin(ctx context.Context, userId string) (bool, error) {
 
 	return isAdmin, nil
 }
+
+func (s *Storage) GetAppById(ctx context.Context, appId int) (models.App, error) {
+	const fn = pkgFn + ".GetAppById"
+	var app models.App
+
+	stmt, err := s.db.Prepare("SELECT id, name, secret FROM apps WHERE id = ?")
+	if err != nil {
+		return app, fmt.Errorf("%s: %w", fn, err)
+	}
+
+
+	row := stmt.QueryRowContext(ctx, appId)
+
+	if err := row.Scan(&app.ID, &app.Name, &app.Secret); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return app, fmt.Errorf("%s: %w", fn, storage.ErrAppNotFound)
+		}
+		return app, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	return app, nil
+}
