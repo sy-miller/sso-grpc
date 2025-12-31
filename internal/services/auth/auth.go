@@ -141,6 +141,9 @@ func (a *AuthSvc) IsAdmin(ctx context.Context, userId string) (bool, error) {
 
 	isAdmin, err := a.userProvider.IsAdmin(ctx, userId)
 	if err != nil {
+		if errors.Is(err, storage.ErrUserNotFound) {
+			return false, fmt.Errorf("%s: %w", fn, ErrUserNotFound)
+		}
 		return false, fmt.Errorf("%s: %w", fn, err)
 	}
 
