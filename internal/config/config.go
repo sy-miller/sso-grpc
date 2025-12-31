@@ -39,6 +39,10 @@ func MustLoad() *Config {
 		panic("config path is empty")
 	}
 
+	return MustLoadByPath(path)
+}
+
+func MustLoadByPath(path string) *Config {
 	cfgFile, err := os.Open(path)
 	if err != nil {
 		panic("could not open config file: " + err.Error())
@@ -89,6 +93,10 @@ func fetchConfigPath() string {
 
 // Duration is a custom type that embeds time.Duration
 type Duration time.Duration
+
+func (d *Duration) ToTimeDuration() time.Duration {
+	return time.Duration(*d)
+}
 
 func (d *Duration) UnmarshalJSON(b []byte) error {
 	var v interface{}
