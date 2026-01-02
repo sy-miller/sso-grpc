@@ -64,6 +64,146 @@ func TestRegisterLogin_Login_HappyPath(t *testing.T) {
 	assert.InDelta(t, loginTime.Add(st.Cfg.TokenTTL.ToTimeDuration()).Unix(), claims["exp"].(float64), deltaSeconds)
 }
 
+func TestRegisterLogin_DuplicateRegistration(t *testing.T) {
+	ctx, st := suite.New(t)
+
+	email := gofakeit.Email()
+	pass := randomFakePassword()
+	// Register inital user
+	_, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+		Email:    email,
+		Password: pass,
+	})
+	require.NoError(t, err)
+
+	// Attempt duplicate registration
+	_, err = st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+		Email:    email,
+		Password: pass,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "user already exists")
+}
+
 func randomFakePassword() string {
 	return gofakeit.Password(true, true, true, true, false, passDefaultLen)
+}
+
+func TestRegister_FailCases(t *testing.T) {
+	ctx, st := suite.New(t)
+
+	tests := []struct {
+		name     string
+		email    string
+		password string
+		errMsg   string
+	}{
+		{
+			name:     "empty email",
+			email:    "",
+			password: randomFakePassword(),
+			errMsg:   "email is required",
+		},
+		{
+			name:     "empty password",
+			email:    gofakeit.Email(),
+			password: "",
+			errMsg:   "password is required",
+		},
+		{
+			name:     "both empty",
+			email:    "",
+			password: "",
+			errMsg:   "email is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			_, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+				Email:    tt.email,
+				Password: tt.password,
+			})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.errMsg)
+		})
+	}
+}
+
+func TestLogin_FailCases(t *testing.T) {
+	ctx, st := suite.New(t)
+
+	email := gofakeit.Email()
+	pass := randomFakePassword()
+	// Register inital user
+	_, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+		Email:    email,
+		Password: pass,
+	})
+	require.NoError(t, err)
+
+	tests := []struct {
+		name     string
+		email    string
+		password string
+		appId    int32
+		errMsg   string
+	}{
+		{
+			name:     "empty email",
+			email:    "",
+			password: pass,
+			appId:    appID,
+			errMsg:   "email is required",
+		},
+		{
+			name:     "empty password",
+			email:    email,
+			password: "",
+			appId:    appID,
+			errMsg:   "password is required",
+		},
+		{
+			name:     "empty email and password",
+			email:    "",
+			password: "",
+			appId:    appID,
+			errMsg:   "email is required",
+		},
+		{
+			name:     "invalid app ID",
+			email:    email,
+			password: pass,
+			appId:    emptyAppId,
+			errMsg:   "app_id is required",
+		},
+		{
+			name:     "wrong password",
+			email:    email,
+			password: "wrongpassword",
+			appId:    appID,
+			errMsg:   "invalid credentials",
+		},
+		{
+			name:     "unregistered email",
+			email:    "nonexistent@example.com",
+			password: pass,
+			appId:    appID,
+			errMsg:   "invalid credentials",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			_, err := st.AuthClient.Login(ctx, &ssov1.LoginRequest{
+				Email:    tt.email,
+				Password: tt.password,
+				AppId:    tt.appId,
+			})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.errMsg)
+		})
+	}
 }
