@@ -1,0 +1,9 @@
+{
+    "env": "test",
+    "storagePath": "./storage/sso.db",
+    "tokenTtl": "1h",
+    "grpc": {
+        "port": 50051,
+        "timeout": "5s"
+    }
+}

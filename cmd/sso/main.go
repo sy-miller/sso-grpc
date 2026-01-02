@@ -19,7 +19,7 @@ func main() {
 
 	// Initialise logger
 	log = setupLogger(cfg.LogLevel).With(
-		slog.String("environment", cfg.Env),
+		slog.String("env", cfg.Env),
 	)
 
 	log.Info("starting application",
